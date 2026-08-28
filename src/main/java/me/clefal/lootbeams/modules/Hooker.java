@@ -12,7 +12,9 @@ import me.clefal.lootbeams.events.EntityRenderDispatcherHookEvent;
 import me.clefal.lootbeams.modules.beam.LightConfigHandler;
 import me.clefal.lootbeams.modules.tooltip.LootInformationEnableStatus;
 import com.mojang.blaze3d.vertex.PoseStack;
+//? <1.21.10 {
 import net.minecraft.client.renderer.MultiBufferSource;
+//?}
 
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;

@@ -1,3 +1,4 @@
+//? <26.2 {
 package me.clefal.lootbeams.compat.multiversion_compat;
 
 import com.clefal.nirvana_lib.relocated.net.neoforged.bus.api.SubscribeEvent;
@@ -28,3 +29,4 @@ public class IrisCompatModule implements ILBCompatModule {
         event.isShaderOn = IrisApi.getInstance().isShaderPackInUse();
     }
 }
+//?}

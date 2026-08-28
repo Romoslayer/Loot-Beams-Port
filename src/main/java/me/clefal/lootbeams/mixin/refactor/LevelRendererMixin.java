@@ -1,4 +1,4 @@
-//? >= 1.21.10 {
+//? >= 1.21.10 && <26.2 {
 /*package me.clefal.lootbeams.mixin.refactor;
 
 import com.clefal.nirvana_lib.relocated.io.vavr.Tuple;
@@ -67,3 +67,43 @@ public abstract class LevelRendererMixin {
 
 }
 *///? }
+
+// MC 26.2 moved extractVisibleEntities/extractEntity off LevelRenderer entirely (see
+// LevelExtractorMixin + RetainedEntityHolder) - this class now only drains what that mixin
+// retained, inside submitEntities (whose signature is otherwise unchanged in 26.2).
+//? >=26.2 {
+/*package me.clefal.lootbeams.mixin.refactor;
+
+import com.mojang.blaze3d.vertex.PoseStack;
+import me.clefal.lootbeams.modules.Hooker;
+import me.clefal.lootbeams.modules.RetainedEntityHolder;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.state.level.LevelRenderState;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+
+@Mixin(LevelRenderer.class)
+public abstract class LevelRendererMixin {
+    @Shadow
+    @Final
+    private EntityRenderDispatcher entityRenderDispatcher;
+
+    @Inject(
+            method = "submitEntities", at = @At(
+            value = "RETURN"
+    ))
+    private void submitEntity(PoseStack poseStack, LevelRenderState renderState, SubmitNodeCollector nodeCollector, CallbackInfo ci){
+        for (var tuple : RetainedEntityHolder.RETAINED) {
+            Hooker.handleTuple(poseStack, renderState, nodeCollector, ci, tuple, this.entityRenderDispatcher);
+        }
+        RetainedEntityHolder.RETAINED.clear();
+    }
+
+}
+*///?}

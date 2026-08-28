@@ -35,6 +35,7 @@ modstitch {
         "1.21.1" -> 21
         "1.21.4" -> 21
         "1.21.8", "1.21.10", "1.21.11" -> 21
+        "26.2" -> 25
         else -> throw IllegalArgumentException("Please store the java version for $minecraft in build.gradle.kts!")
     }
 
@@ -74,6 +75,7 @@ modstitch {
                     "1.21.8" -> 64
                     "1.21.10" -> 69
                     "1.21.11" -> 70.0
+                    "26.2" -> 84.0
                     else -> throw IllegalArgumentException("Please store the resource pack version for ${property("deps.minecraft")} in build.gradle.kts! https://minecraft.wiki/w/Pack_format")
                 }.toString()
             )
@@ -102,7 +104,7 @@ modstitch {
     loom {
         // It's not recommended to store the Fabric Loader version in properties.
         // Make sure its up to date.
-        fabricLoaderVersion = "0.16.11"
+        fabricLoaderVersion = if (minecraft == "26.2") "0.19.3" else "0.16.11"
         configureLoom {
             runs {
                 all {
@@ -160,6 +162,7 @@ modstitch {
             isModDevGradleLegacy -> configs.register("${mid}-1.20.1")
             minecraft == "1.21.1" -> configs.register("${mid}-1.21")
             minecraft == "1.21.4" -> configs.register("${mid}-1.21.4")
+            minecraft == "26.2" -> configs.register("${mid}-26.2")
             minecraft == "1.21.10" || minecraft == "1.21.11" -> configs.register("${mid}-1.21.10")
             else -> configs.register("${mid}-default")
         }
@@ -203,6 +206,17 @@ stonecutter {
 
     replacements.regex(current.parsed >= "1.21.11") {
         replace("\\bResourceLocation\\b" to "Identifier", "\\bIdentifier\\b" to "ResourceLocation")
+    }
+
+    replacements.string(current.parsed.eq("26.2")) {
+        replace("net.minecraft.client.gui.render.state", "net.minecraft.client.renderer.state.gui")
+        replace("net.minecraft.client.renderer.state.LevelRenderState", "net.minecraft.client.renderer.state.level.LevelRenderState")
+        replace(".getTags()", ".tags()")
+        replace(".getItemHolder()", ".typeHolder()")
+    }
+
+    replacements.regex(current.parsed.eq("26.2")) {
+        replace("\\bGuiGraphics\\b" to "GuiGraphicsExtractor", "\\bGuiGraphicsExtractor\\b" to "GuiGraphics")
     }
 
     replacements.string("ss_replacement", current.version.equals("1.20.1")) {
@@ -278,8 +292,18 @@ dependencies {
     modstitchModCompileOnly(fzzyString)
     (fzzyString).runtimeOnly()
 
-    ("maven.modrinth:nirvana-library:${loader}-${minecraft}-${libVersion}").implementation()
-    ("maven.modrinth:common-network:${property("deps.common_network")}").runtimeOnly()
+    // No fabric-26.2 build of nirvana-library exists on Modrinth yet; consume the locally
+    // ported+published build (see NirvanaLib's own 26.2-fabric port) via mavenLocal instead.
+    if (minecraft == "26.2") {
+        ("com.clefal:nirvana_lib:2.2.0").implementation()
+    } else {
+        ("maven.modrinth:nirvana-library:${loader}-${minecraft}-${libVersion}").implementation()
+    }
+    // common-network has no fabric-26.2 build either, and it's unused directly in this mod's
+    // source (runtimeOnly only), so it's simply omitted for this target.
+    if (minecraft != "26.2") {
+        ("maven.modrinth:common-network:${property("deps.common_network")}").runtimeOnly()
+    }
     //loader-specified deps
     DependencyConfig.getDependencies(loaderEnum, minecraft).forEach { dep ->
         dependencies.add(dep.configuration, dep.notation, dep.options)
@@ -313,32 +337,33 @@ msPublishing {
             this@mpp.displayName.set(file.map { it.asFile.name })
         }
         //dryRun = true
-        val cfOptions = curseforgeOptions {
-            accessToken = file("D:\\curseforge-key.txt").readText()
-            projectId = "1150640"
-            minecraftVersions.add(minecraft)
-            clientRequired = true
-            serverRequired = false
-            javaVersions.set(listOf(JavaVersion.toVersion(modstitch.javaVersion.get())))
-            requires("nirvana-library")
+        if (file("D:\\curseforge-key.txt").exists()) {
+            val cfOptions = curseforgeOptions {
+                accessToken = file("D:\\curseforge-key.txt").readText()
+                projectId = "1150640"
+                minecraftVersions.add(minecraft)
+                clientRequired = true
+                serverRequired = false
+                javaVersions.set(listOf(JavaVersion.toVersion(modstitch.javaVersion.get())))
+                requires("nirvana-library")
+            }
+            curseforge("toCurseForge") {
+                from(cfOptions)
+            }
         }
 
-        // Modrinth options used by both Fabric and Forge
-        val mrOptions = modrinthOptions {
-            accessToken = file("D:\\modrinth-key.txt").readText()
-            version = "${loader}-${minecraft}-${modstitch.metadata.modVersion.get()}"
-            projectId = "rp7ooqvq"
-            minecraftVersions.add(minecraft)
-            requires("nirvana-library")
-        }
-
-        curseforge("toCurseForge") {
-            from(cfOptions)
-        }
-
-
-        modrinth("toModrinth") {
-            from(mrOptions)
+        if (file("D:\\modrinth-key.txt").exists()) {
+            // Modrinth options used by both Fabric and Forge
+            val mrOptions = modrinthOptions {
+                accessToken = file("D:\\modrinth-key.txt").readText()
+                version = "${loader}-${minecraft}-${modstitch.metadata.modVersion.get()}"
+                projectId = "rp7ooqvq"
+                minecraftVersions.add(minecraft)
+                requires("nirvana-library")
+            }
+            modrinth("toModrinth") {
+                from(mrOptions)
+            }
         }
 
 

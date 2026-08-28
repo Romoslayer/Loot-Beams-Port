@@ -15,7 +15,13 @@ import com.mojang.math.Axis;
 import com.clefal.nirvana_lib.relocated.io.vavr.control.Option;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+//? <26.2 {
 import net.minecraft.client.renderer.MultiBufferSource;
+//?}
+//? >=26.2 {
+/*import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+*///?}
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -36,7 +42,7 @@ public class BeamRenderer {
     public BeamRenderer() {
     }
 
-
+    //? <26.2 {
     public void renderLootBeam(PoseStack stack, MultiBufferSource buffer, float partialTick, LBItemEntity LBItemEntity, boolean isShaderOn){
         PoseCopy last = (PoseCopy) ((Object) stack.last());
         this.isShaderOn = isShaderOn;
@@ -119,10 +125,10 @@ public class BeamRenderer {
             //main beam
             {
 
-                draw(stack, buffer1, R, G, B, beamAlpha, -beamRadius, beamRadius, -beamHeight, beamHeight, 0.001f);
+                draw(stack.last(), buffer1, R, G, B, beamAlpha, -beamRadius, beamRadius, -beamHeight, beamHeight, 0.001f);
                 //main beam bloom
                 {
-                    draw(stack, buffer1, R, G, B, bloomAlpha, -bloomRadius, bloomRadius, -beamHeight, beamHeight, 0.001f);
+                    draw(stack.last(), buffer1, R, G, B, bloomAlpha, -bloomRadius, bloomRadius, -beamHeight, beamHeight, 0.001f);
                 }
             }
             //main beam bloom
@@ -132,18 +138,18 @@ public class BeamRenderer {
                 VertexConsumer buffer2 = getBeam.apply(BEAM_TOP);
 
                 if (!isShaderOn){
-                    draw(stack, buffer2, R, G, B, beamAlpha, beamRadius, -beamRadius, beamHeight * 3 / 2, beamHeight, 0.001f);
+                    draw(stack.last(), buffer2, R, G, B, beamAlpha, beamRadius, -beamRadius, beamHeight * 3 / 2, beamHeight, 0.001f);
                 } else {
                     beamHeight = beamHeight - 0.25f;
-                    draw(stack, buffer2, R, G, B, beamAlpha, -beamRadius, beamRadius, beamHeight, beamHeight * 3 / 2, 0.001f);
+                    draw(stack.last(), buffer2, R, G, B, beamAlpha, -beamRadius, beamRadius, beamHeight, beamHeight * 3 / 2, 0.001f);
                 }
 
                 //beam top bloom
                 {
                     if (!isShaderOn){
-                        draw(stack, buffer2, R, G, B, bloomAlpha, bloomRadius, -bloomRadius, beamHeight * 3 / 2, beamHeight, 0.001f);
+                        draw(stack.last(), buffer2, R, G, B, bloomAlpha, bloomRadius, -bloomRadius, beamHeight * 3 / 2, beamHeight, 0.001f);
                     } else {
-                        draw(stack, buffer2, R, G, B, bloomAlpha, -bloomRadius, bloomRadius, beamHeight, beamHeight * 3 / 2, 0.001f);
+                        draw(stack.last(), buffer2, R, G, B, bloomAlpha, -bloomRadius, bloomRadius, beamHeight, beamHeight * 3 / 2, 0.001f);
                     }
 
                 }
@@ -166,31 +172,144 @@ public class BeamRenderer {
                 stack.mulPose(Axis.XP.rotationDegrees(90));
                 float radius = glowConfig.glow_effect_radius.get();
                 stack.translate(0, -radius, -0.01f);
-                renderGlow(stack, getBeam.apply(BeamRenderType.GLOW_TEXTURE), R, G, B, ((int) (beamAlpha * 0.4f)), radius);
+                renderGlow(stack.last(), getBeam.apply(BeamRenderType.GLOW_TEXTURE), R, G, B, ((int) (beamAlpha * 0.4f)), radius);
                 stack.popPose();
             }
 
         }
 
     }
+    //?}
 
-
-    private void renderGlow(PoseStack stack, VertexConsumer builder, int red, int green, int blue, int alpha, float radius) {
-        // draw a quad on the xz plane facing up with a radius of 0.5
-        draw(stack, builder, red, green, blue, alpha, -radius, radius, 0, 1, 0);
+    //? >=26.2 {
+    /*public void renderLootBeam(PoseStack stack, SubmitNodeCollector collector, float partialTick, LBItemEntity LBItemEntity, boolean isShaderOn){
+        PoseCopy last = (PoseCopy) ((Object) stack.last());
+        this.isShaderOn = isShaderOn;
+        renderLootBeam(collector, LootBeamRenderState.BeamRenderState.make(LBItemEntity, last.loot_Beams_Refork$copy(), partialTick, isShaderOn));
     }
 
-    private void draw(PoseStack stack, VertexConsumer builder, int red, int green, int blue, int alpha, float minX, float maxX, float minY, float maxY, float z){
+    public void renderLootBeam(SubmitNodeCollector collector, LootBeamRenderState.BeamRenderState renderState) {
+
+        LBColor color = renderState.rarity.color();
+        int lifeTime = renderState.fadeIn;
+
+        PoseStack.Pose pose = renderState.poseStack;
+        PoseStack stack = new PoseStack();
+        stack.last().pose().set(pose.pose());
+        stack.last().normal().set(pose.normal());
+
+
+
+        LightConfig.Beam beamConfig = LightConfig.lightConfig.beam;
+        LightConfig.Glow glowConfig = LightConfig.lightConfig.glow;
+        int fadeInTime = beamConfig.beam_fade_in_time.get();
+
+        var fadeInFactor = 1.0f * lifeTime / fadeInTime;
+        int R = color.red();
+        int G = color.green();
+        int B = color.blue();
+
+        float preBeamAlpha = beamConfig.beam_alpha.get();
+
+        LocalPlayer player = Minecraft.getInstance().player;
+        double distance = Mth.sqrt((float) player.distanceToSqr(renderState.location));
+        float fadeDistance = beamConfig.beam_fade_in_distance.get();
+        if (distance > fadeDistance) {
+            float m = (float) distance - fadeDistance;
+            preBeamAlpha *= 1 / Math.max(m / fadeDistance, 1.0f);
+        }
+
+        float beamRadius = 0.08f * beamConfig.beam_radius.get();
+        float beamHeight = beamConfig.beam_height.get();
+        float yOffset = beamConfig.beam_y_offset.get();
+        if (beamConfig.common_shorter_beam) {
+            if (renderState.rarity.absoluteOrdinal() <= 0) {
+                beamHeight *= 0.65f;
+                yOffset -= yOffset;
+            }
+        }
+
+        int beamAlpha = ((int) (preBeamAlpha * 255));
+        Option<DynamicProvider> dynamicProvider1 = DynamicProviderModule.getDynamicProvider();
+        if (dynamicProvider1.isDefined()) {
+            beamAlpha *= Math.min(dynamicProvider1.get().getBeamLightFactor(), 1);
+            beamHeight += dynamicProvider1.get().getBeamLightFactor() - 0.3f;
+            beamRadius += 0.005f * dynamicProvider1.get().getGlowFactor();
+        }
+
+        beamAlpha *= fadeInFactor;
+        beamHeight *= fadeInFactor;
+        Vector3f playerPos = player.getPosition(renderState.partialTick).toVector3f();
+        Vector3f targetPos = renderState.location.toVector3f();
+        Vector3f sub = targetPos.sub(playerPos);
+        Vector3f direction = sub.normalize();
+        double v = Math.atan2(direction.x(), direction.z());
+
+        final float finalBeamRadius = beamRadius;
+        final float finalBloomRadius = beamRadius * 1.35f;
+        final int finalBeamAlpha = beamAlpha;
+        final int finalBloomAlpha = (int) (beamAlpha * 0.4f);
+        final int fR = R, fG = G, fB = B;
+        final boolean shaderOn = isShaderOn;
+        final float finalBeamHeightPreTop = beamHeight;
+
+        stack.pushPose();
+        stack.mulPose(Axis.YP.rotation((float) v));
+        {
+            stack.pushPose();
+            stack.translate(0, yOffset + 1, 0);
+
+            RenderType mainBeamType = BeamRenderType.getBeamRendertype(MAIN_BEAM, isShaderOn);
+            collector.submitCustomGeometry(stack, mainBeamType, (drawPose, buffer1) -> {
+                draw(drawPose, buffer1, fR, fG, fB, finalBeamAlpha, -finalBeamRadius, finalBeamRadius, -finalBeamHeightPreTop, finalBeamHeightPreTop, 0.001f);
+                draw(drawPose, buffer1, fR, fG, fB, finalBloomAlpha, -finalBloomRadius, finalBloomRadius, -finalBeamHeightPreTop, finalBeamHeightPreTop, 0.001f);
+            });
+
+            RenderType beamTopType = BeamRenderType.getBeamRendertype(BEAM_TOP, isShaderOn);
+            collector.submitCustomGeometry(stack, beamTopType, (drawPose, buffer2) -> {
+                if (!shaderOn){
+                    draw(drawPose, buffer2, fR, fG, fB, finalBeamAlpha, finalBeamRadius, -finalBeamRadius, finalBeamHeightPreTop * 3 / 2, finalBeamHeightPreTop, 0.001f);
+                    draw(drawPose, buffer2, fR, fG, fB, finalBloomAlpha, finalBloomRadius, -finalBloomRadius, finalBeamHeightPreTop * 3 / 2, finalBeamHeightPreTop, 0.001f);
+                } else {
+                    float adjHeight = finalBeamHeightPreTop - 0.25f;
+                    draw(drawPose, buffer2, fR, fG, fB, finalBeamAlpha, -finalBeamRadius, finalBeamRadius, adjHeight, adjHeight * 3 / 2, 0.001f);
+                    draw(drawPose, buffer2, fR, fG, fB, finalBloomAlpha, -finalBloomRadius, finalBloomRadius, adjHeight, adjHeight * 3 / 2, 0.001f);
+                }
+            });
+
+            stack.popPose();
+        }
+        stack.popPose();
+
+        if (glowConfig.enable_glow && renderState.onGround) {
+            stack.pushPose();
+            stack.mulPose(Axis.XP.rotationDegrees(90));
+            float radius = glowConfig.glow_effect_radius.get();
+            stack.translate(0, -radius, -0.01f);
+            final int glowAlpha = (int) (finalBeamAlpha * 0.4f);
+            collector.submitCustomGeometry(stack, BeamRenderType.getBeamRendertype(BeamRenderType.GLOW_TEXTURE, isShaderOn), (drawPose, buffer) ->
+                    renderGlow(drawPose, buffer, fR, fG, fB, glowAlpha, radius));
+            stack.popPose();
+        }
+    }
+    *///?}
+
+
+    private void renderGlow(PoseStack.Pose pose, VertexConsumer builder, int red, int green, int blue, int alpha, float radius) {
+        // draw a quad on the xz plane facing up with a radius of 0.5
+        draw(pose, builder, red, green, blue, alpha, -radius, radius, 0, 1, 0);
+    }
+
+    private void draw(PoseStack.Pose pose, VertexConsumer builder, int red, int green, int blue, int alpha, float minX, float maxX, float minY, float maxY, float z){
         if (isShaderOn) {
-            drawOnShader(stack, builder, red, green, blue, alpha, minX, maxX, minY, maxY, z);
+            drawOnShader(pose, builder, red, green, blue, alpha, minX, maxX, minY, maxY, z);
         } else {
-            drawWithoutShader(stack, builder, red, green, blue, alpha, minX, maxX, minY, maxY, z);
+            drawWithoutShader(pose, builder, red, green, blue, alpha, minX, maxX, minY, maxY, z);
         }
 
     }
 
-    private void drawWithoutShader(PoseStack stack, VertexConsumer builder, int red, int green, int blue, int alpha, float minX, float maxX, float minY, float maxY, float z){
-        PoseStack.Pose matrixentry = stack.last();
+    private void drawWithoutShader(PoseStack.Pose matrixentry, VertexConsumer builder, int red, int green, int blue, int alpha, float minX, float maxX, float minY, float maxY, float z){
         Matrix4f matrixpose = matrixentry.pose();
         //? legacy {
         /*builder.vertex(matrixpose, minX, minY, z).color(red, green, blue, alpha).uv(0, 0).overlayCoords(OverlayTexture.NO_OVERLAY).uv2(15728880).normal(matrixentry.normal(), 0.0F, 1.0F, 0.0F).endVertex();
@@ -206,8 +325,7 @@ public class BeamRenderer {
 
     }
 
-    private void drawOnShader(PoseStack stack, VertexConsumer builder, int red, int green, int blue, int alpha, float minX, float maxX, float minY, float maxY, float z){
-        PoseStack.Pose matrixentry = stack.last();
+    private void drawOnShader(PoseStack.Pose matrixentry, VertexConsumer builder, int red, int green, int blue, int alpha, float minX, float maxX, float minY, float maxY, float z){
         Matrix4f matrixpose = matrixentry.pose();
         //? legacy {
         /*builder.vertex(matrixpose, minX, minY, z).uv(0, 1).color(red, green, blue, alpha).uv2(15728880).endVertex();

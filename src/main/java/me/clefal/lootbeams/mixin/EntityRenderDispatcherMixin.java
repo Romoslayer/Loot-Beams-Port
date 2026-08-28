@@ -5,7 +5,9 @@ package me.clefal.lootbeams.mixin;
 import me.clefal.lootbeams.modules.Holder;
 import me.clefal.lootbeams.modules.Hooker;
 import com.mojang.blaze3d.vertex.PoseStack;
+//? <1.21.10 {
 import net.minecraft.client.renderer.MultiBufferSource;
+//?}
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 //? if >=1.21.4

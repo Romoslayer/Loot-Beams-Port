@@ -47,7 +47,11 @@ public class EquipmentConditions extends PersistentConfigData<RegisterConfigCond
                 /*|| ((Supplier<Boolean>) () -> {
             Equippable equippable = lbItemEntity.item().getItem().get(DataComponents.EQUIPPABLE);
             if (equippable != null && Minecraft.getInstance().player != null){
+                //? <26.2 {
                 return equippable.canBeEquippedBy(Minecraft.getInstance().player.getType());
+                //?} else {
+                /^return equippable.canBeEquippedBy(Minecraft.getInstance().player.typeHolder());^/
+                //?}
             }
             return false;
         }).get()

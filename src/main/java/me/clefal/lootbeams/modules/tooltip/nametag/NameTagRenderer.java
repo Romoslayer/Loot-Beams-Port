@@ -12,8 +12,14 @@ import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.player.LocalPlayer;
+//? <26.2 {
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
+//?}
+//? >=26.2 {
+/*import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.util.FormattedCharSequence;
+*///?}
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -24,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class NameTagRenderer {
+    //? <26.2 {
     public static void renderNameTag(PoseStack stack, MultiBufferSource buffer, LBItemEntity LBItemEntity){
         PoseCopy last = (PoseCopy) ((Object) stack.last());
         renderNameTag(buffer, LootBeamRenderState.NameTagRenderState.fromLBEntity(LBItemEntity, last.loot_Beams_Refork$copy()));
@@ -90,6 +97,61 @@ public class NameTagRenderer {
             fontRenderer.drawInBatch(text, (float) (-fontRenderer.width(text) / 2), 30f, foregroundColor, false, stack.last().pose(), buffer, Font.DisplayMode.NORMAL, backgroundColor, 15728864);
         }
     }
+    //?}
+
+    //? >=26.2 {
+    /*public static void renderNameTag(PoseStack stack, SubmitNodeCollector collector, LBItemEntity LBItemEntity){
+        PoseCopy last = (PoseCopy) ((Object) stack.last());
+        renderNameTag(collector, LootBeamRenderState.NameTagRenderState.fromLBEntity(LBItemEntity, last.loot_Beams_Refork$copy()));
+    }
+
+    public static void renderNameTag(SubmitNodeCollector collector, LootBeamRenderState.NameTagRenderState renderState) {
+        LootInfomationConfig.nameTagSection nameTagSection = LootInfomationConfig.lootInfomationConfig.nameTag;
+        PoseStack.Pose pose = renderState.poseStack;
+        PoseStack stack = new PoseStack();
+        stack.last().pose().set(pose.pose());
+        stack.last().normal().set(pose.normal());
+        if (Minecraft.getInstance().player.isCrouching() || ((nameTagSection.render_name_tag_on_look && renderState.isLookingAtThis))) {
+            LBColor color = renderState.rarity.color();
+            float foregroundAlpha = nameTagSection.name_tag_text_alpha.get();
+            float backgroundAlpha = nameTagSection.name_tag_background_alpha.get();
+            double yOffset = nameTagSection.name_tag_y_offset.get();
+            int foregroundColor = color.changeA(((int) (foregroundAlpha * 255))).argb();
+            int backgroundColor = color.changeA(((int) (foregroundAlpha * 255))).argb();
+            stack.pushPose();
+            stack.translate(0.0D, Math.min(1D, Minecraft.getInstance().player.distanceToSqr(renderState.location) * 0.025D) + yOffset, 0.0D);
+            stack.mulPose(Minecraft.getInstance().getEntityRenderDispatcher().camera.rotation());
+            stack.mulPose(Axis.YP.rotationDegrees(180));
+
+            float nametagScale = nameTagSection.name_tag_scale.get();
+            stack.scale(-0.02F * nametagScale, -0.02F * nametagScale, 0.02F * nametagScale);
+
+            List<Component> nameAndRarity = renderState.nameAndRarity;
+            Font fontrenderer = Minecraft.getInstance().font;
+            stack.translate(0, 2, -10);
+
+            for (Component c : nameAndRarity) {
+                String s = c.getString();
+                if (s.isBlank()) continue;
+                renderText(fontrenderer, stack, collector, s, foregroundColor, backgroundColor, backgroundAlpha);
+                stack.translate(0, Minecraft.getInstance().font.lineHeight, 0.0f);
+            }
+
+            stack.popPose();
+        }
+    }
+
+    private static void renderText(Font fontRenderer, PoseStack stack, SubmitNodeCollector collector, String text, int foregroundColor, int backgroundColor, float backgroundAlpha) {
+        FormattedCharSequence sequence = Component.literal(text).getVisualOrderText();
+        if (LootInfomationConfig.lootInfomationConfig.nameTag.add_text_border) {
+            float w = -fontRenderer.width(text) / 2f;
+            int bg = new Color(0, 0, 0, (int) (255 * backgroundAlpha)).getRGB();
+            collector.submitText(stack, w, 0f, sequence, false, Font.DisplayMode.NORMAL, 0xF000F0, foregroundColor, 0, bg);
+        } else {
+            collector.submitText(stack, (float) (-fontRenderer.width(text) / 2), 30f, sequence, false, Font.DisplayMode.NORMAL, 15728864, foregroundColor, backgroundColor, 0);
+        }
+    }
+    *///?}
 
 
 

@@ -4,6 +4,7 @@ package me.clefal.lootbeams.loaders.neoforge;
 import me.clefal.lootbeams.LootBeamsConstants;
 //? (1.20.1 && forge) || (1.21.1 && neoforge)
 import me.clefal.lootbeams.compat.multiversion_compat.RarityCoreCompatModule;
+//? <26.2
 import me.clefal.lootbeams.compat.multiversion_compat.IrisCompatModule;
 //? if =1.21.1 {
 import me.clefal.lootbeams.compat.common_1_21_1.AccessoriesCompatModule;
@@ -66,6 +67,7 @@ public class LootBeamsNeoforgeModClientEvent {
                 /*SubtleEffectCompatModule.INSTANCE
                 *///?}
         );
+        //? <26.2
         ModulesManager.registerModules(IrisCompatModule.INSTANCE);
         //? 1.21.1
         ModulesManager.registerModules(RarityCoreCompatModule.INSTANCE);

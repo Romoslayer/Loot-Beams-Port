@@ -1,4 +1,4 @@
-//? >= 1.21.10 {
+//? >= 1.21.10 && <26.2 {
 /*package me.clefal.lootbeams.mixin.refactor;
 
 import com.llamalad7.mixinextras.sugar.Local;

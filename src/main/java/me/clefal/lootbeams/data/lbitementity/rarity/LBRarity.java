@@ -15,7 +15,11 @@ public record LBRarity(Component name, LBColor color, int absoluteOrdinal, Modif
 
     public static LBRarity ofVanillaRarity(Rarity rarity){
         Component name;
+        //? <26.2 {
         if (I18n.exists(vanillaRarityKeFormat + rarity.name().toLowerCase())) {
+        //?} else {
+        /*if (net.minecraft.locale.Language.getInstance().has(vanillaRarityKeFormat + rarity.name().toLowerCase())) {
+        *///?}
             name = Component.translatable(vanillaRarityKeFormat + rarity.name().toLowerCase());
         } else {
             name = Component.literal(rarity.name().toLowerCase());
@@ -39,8 +43,10 @@ public record LBRarity(Component name, LBColor color, int absoluteOrdinal, Modif
     /*private static int grabColorWhenOnStupidFabric(Rarity rarity){
         //? 1.20.1 {
         return rarity.color.getColor();
-        //?} else {
+        //?} else if (<26.2) {
         /^return rarity.color().getColor();
+        ^///?} else {
+        /^return TextColor.fromLegacyFormat(rarity.color()).getValue();
         ^///?}
     }
     *///?}

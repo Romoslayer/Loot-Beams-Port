@@ -2,6 +2,7 @@
 /*package me.clefal.lootbeams.loaders.fabric;
 
 import me.clefal.lootbeams.LootBeamsConstants;
+//? <26.2
 import me.clefal.lootbeams.compat.multiversion_compat.IrisCompatModule;
 //? if =1.21.1 {
 
@@ -32,7 +33,12 @@ import me.clefal.lootbeams.compat.multiversion_compat.SimpleSwordCompatModule;
 import me.clefal.lootbeams.config.ConfigHandlers;
 import me.clefal.lootbeams.modules.ModulesManager;
 import me.clefal.lootbeams.modules.tooltip.overlay.AdvanceTooltipOverlay;
+import me.clefal.lootbeams.CommonClass;
+//? <26.2 {
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+//?} else {
+/^import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;^/
+//?}
 
 
 public class LootBeamsFabricModClientEvent {
@@ -44,7 +50,11 @@ public class LootBeamsFabricModClientEvent {
 
 
     public static void registerOverlay() {
+        //? <26.2 {
         HudRenderCallback.EVENT.register(AdvanceTooltipOverlay.INSTANCE::render);
+        //?} else {
+        /^HudElementRegistry.addLast(CommonClass.id("advance_tooltip_overlay"), AdvanceTooltipOverlay.INSTANCE::render);^/
+        //?}
     }
 
 
@@ -76,6 +86,7 @@ public class LootBeamsFabricModClientEvent {
         //? if =1.21.4
         //ModulesManager.registerModules(SubtleEffectCompatModule.INSTANCE);
 
+        //? <26.2
         ModulesManager.registerModules(IrisCompatModule.INSTANCE);
         ModulesManager.enableAll();
         ConfigHandlers.init();
