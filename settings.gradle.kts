@@ -40,6 +40,7 @@ stonecutter {
             loaders.forEach { version("$name-$it", mcVersion) }
 
         // Configure your targets here!
+        mc("26.3", loaders = listOf("fabric", "neoforge"))
         mc("26.2", loaders = listOf("fabric", "neoforge"))
         mc("1.21.11", loaders = listOf("fabric", "neoforge"))
         mc("1.21.10", loaders = listOf("fabric", "neoforge"))

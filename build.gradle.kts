@@ -35,7 +35,7 @@ modstitch {
         "1.21.1" -> 21
         "1.21.4" -> 21
         "1.21.8", "1.21.10", "1.21.11" -> 21
-        "26.2" -> 25
+        "26.2", "26.3" -> 25
         else -> throw IllegalArgumentException("Please store the java version for $minecraft in build.gradle.kts!")
     }
 
@@ -67,8 +67,7 @@ modstitch {
             // You can put any other replacement properties/metadata here that
             // modstitch doesn't initially support. Some examples below.
             put("mod_issue_tracker", "https://github.com/TUsama/Loot-Beams-Refork/issues")
-            put(
-                "pformat", when (property("deps.minecraft")) {
+            val packFormat = when (property("deps.minecraft")) {
                     "1.20.1" -> 15
                     "1.21.1" -> 34
                     "1.21.4" -> 46
@@ -76,11 +75,21 @@ modstitch {
                     "1.21.10" -> 69
                     "1.21.11" -> 70.0
                     "26.2" -> 84.0
+                    "26.3" -> 97
                     else -> throw IllegalArgumentException("Please store the resource pack version for ${property("deps.minecraft")} in build.gradle.kts! https://minecraft.wiki/w/Pack_format")
-                }.toString()
-            )
+            }.toString()
+            put("pformat", packFormat)
 
             put("target_minecraft", minecraft)
+            // MC 26.3 replaced pack.mcmeta's "pack_format" with "min_format"/"max_format" (the
+            // latter carrying the minor version). Leaving the old key makes the loader log
+            // "Error reading optional pack metadata ... attempting fallback type" on every launch.
+            put(
+                "pack_format_entry", when (property("deps.minecraft")) {
+                    "26.3" -> "\"min_format\": 97, \"max_format\": [97, 1]"
+                    else -> "\"pack_format\": $packFormat"
+                }
+            )
             //put("target_lib", property("deps.lib") as String)
             put(
                 "target_loader", when (loader) {
@@ -104,7 +113,11 @@ modstitch {
     loom {
         // It's not recommended to store the Fabric Loader version in properties.
         // Make sure its up to date.
-        fabricLoaderVersion = if (minecraft == "26.2") "0.19.3" else "0.16.11"
+        fabricLoaderVersion = when (minecraft) {
+            "26.3" -> "0.19.5"
+            "26.2" -> "0.19.3"
+            else -> "0.16.11"
+        }
         configureLoom {
             runs {
                 all {
@@ -163,6 +176,7 @@ modstitch {
             minecraft == "1.21.1" -> configs.register("${mid}-1.21")
             minecraft == "1.21.4" -> configs.register("${mid}-1.21.4")
             minecraft == "26.2" -> configs.register("${mid}-26.2")
+            minecraft == "26.3" -> configs.register("${mid}-26.3")
             minecraft == "1.21.10" || minecraft == "1.21.11" -> configs.register("${mid}-1.21.10")
             else -> configs.register("${mid}-default")
         }
@@ -208,15 +222,26 @@ stonecutter {
         replace("\\bResourceLocation\\b" to "Identifier", "\\bIdentifier\\b" to "ResourceLocation")
     }
 
-    replacements.string(current.parsed.eq("26.2")) {
+    // These renames all still hold on 26.3, so gate them on ">= 26.2" rather than an exact match.
+    replacements.string(current.parsed >= "26.2") {
         replace("net.minecraft.client.gui.render.state", "net.minecraft.client.renderer.state.gui")
         replace("net.minecraft.client.renderer.state.LevelRenderState", "net.minecraft.client.renderer.state.level.LevelRenderState")
         replace(".getTags()", ".tags()")
         replace(".getItemHolder()", ".typeHolder()")
     }
 
-    replacements.regex(current.parsed.eq("26.2")) {
+    replacements.regex(current.parsed >= "26.2") {
         replace("\\bGuiGraphics\\b" to "GuiGraphicsExtractor", "\\bGuiGraphicsExtractor\\b" to "GuiGraphics")
+    }
+
+    // MC 26.3 moved the GPU abstraction layer out of com.mojang.blaze3d into the new
+    // com.mojang.renderpearl library. PoseStack/VertexConsumer/DefaultVertexFormat/RenderSystem
+    // stayed behind, so only VertexFormat needs remapping here.
+    replacements.string(current.parsed >= "26.3") {
+        replace("com.mojang.blaze3d.vertex.VertexFormat", "com.mojang.renderpearl.api.vertex.VertexFormat")
+        // PoseStack.mulPose(Quaternionfc) became rotate(Quaternionfc); every mulPose call in this
+        // mod passes a quaternion, so the blanket rename is safe here.
+        replace(".mulPose(", ".rotate(")
     }
 
     replacements.string("ss_replacement", current.version.equals("1.20.1")) {
@@ -281,6 +306,12 @@ dependencies {
         } else {
             if (minecraft == "1.21.8"){
                 fzzyString = "me.fzzyhmstrs:fzzy_config:${fzzyConfigVersion}+1.21.7+neoforge";
+            } else if (minecraft == "26.3") {
+                // fzzy_config has published a 26.3 Fabric build but not a NeoForge one yet. The mod's
+                // config code compiles against its API, so fall back to the 26.2 NeoForge jar of the
+                // same fzzy_config release — same API surface, and its metadata accepts newer
+                // Minecraft versions. Switch to +26.3+neoforge as soon as it is published.
+                fzzyString = "me.fzzyhmstrs:fzzy_config:${fzzyConfigVersion}+26.2+neoforge"
             } else {
                 fzzyString = "me.fzzyhmstrs:fzzy_config:${fzzyConfigVersion}+${fzzyMinecraftVersion}+neoforge"
             }
@@ -292,16 +323,19 @@ dependencies {
     modstitchModCompileOnly(fzzyString)
     (fzzyString).runtimeOnly()
 
-    // No fabric-26.2 build of nirvana-library exists on Modrinth yet; consume the locally
-    // ported+published build (see NirvanaLib's own 26.2-fabric port) via mavenLocal instead.
-    if (minecraft == "26.2") {
+    // No 26.x build of nirvana-library exists on Modrinth yet; consume the locally ported and
+    // published builds (see NirvanaLib's own 26.2 and 26.3 ports) via mavenLocal instead. The
+    // 26.3 publication is version-qualified so it does not overwrite the 26.2 one.
+    if (minecraft == "26.3") {
+        ("com.clefal:nirvana_lib:2.2.0+26.3").implementation()
+    } else if (minecraft == "26.2") {
         ("com.clefal:nirvana_lib:2.2.0").implementation()
     } else {
         ("maven.modrinth:nirvana-library:${loader}-${minecraft}-${libVersion}").implementation()
     }
-    // common-network has no fabric-26.2 build either, and it's unused directly in this mod's
-    // source (runtimeOnly only), so it's simply omitted for this target.
-    if (minecraft != "26.2") {
+    // common-network has no 26.x build either, and it's unused directly in this mod's source
+    // (runtimeOnly only), so it's simply omitted for those targets.
+    if (minecraft != "26.2" && minecraft != "26.3") {
         ("maven.modrinth:common-network:${property("deps.common_network")}").runtimeOnly()
     }
     //loader-specified deps

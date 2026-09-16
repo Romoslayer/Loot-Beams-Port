@@ -43,3 +43,8 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+# AI assistant session artifacts
+HANDOFF.md
+.claude/
+CLAUDE.md
+AGENTS.md
