@@ -1,3 +1,6 @@
+### V3.4.9
+add Simplified Chinese (zh_cn) translation, including every config option (thanks to zixijian)
+
 ### V3.4.8
 add static_beam_height config option (Light Config > Beam): keeps loot beams at a fixed height instead of bobbing up and down
 (neoforge) fix Light Config, Loot Information and Custom Config missing from the config screen until a beam had rendered
