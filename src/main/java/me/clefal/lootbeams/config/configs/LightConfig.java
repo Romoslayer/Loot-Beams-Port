@@ -48,6 +48,9 @@ public class LightConfig extends Config {
 
         public ValidatedFloat beam_radius = new ValidatedFloat(0.55f, 5f, 0f);
         public ValidatedFloat beam_height = new ValidatedFloat(1.5f, 10f, 0f);
+        // Keeps the beam at a fixed height: no pulsing up and down with the dynamic effect, and no
+        // growing out of the ground when an item drops. Alpha still fades in and pulses as usual.
+        public boolean static_beam_height = false;
         public ValidatedFloat beam_y_offset = new ValidatedFloat(0.5f, 30f, -30f);
         public ValidatedFloat beam_alpha = new ValidatedFloat(0.75f, 1f, 0f);
         public boolean common_shorter_beam = true;

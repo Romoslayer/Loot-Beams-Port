@@ -1,3 +1,8 @@
+### V3.4.8
+add static_beam_height config option (Light Config > Beam): keeps loot beams at a fixed height instead of bobbing up and down
+(neoforge) fix Light Config, Loot Information and Custom Config missing from the config screen until a beam had rendered
+(26.3) use Fzzy Config 0.7.7+fix2 or newer: earlier 26.3 builds have sliders that can't be dragged
+
 ### V3.4.7
 (above 1.21.4) fix mixin crash in some versions
 (1.20.1 forge & 1.21.1 neoforge) add RarityCore Compat

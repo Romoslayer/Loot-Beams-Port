@@ -306,18 +306,27 @@ dependencies {
         } else {
             if (minecraft == "1.21.8"){
                 fzzyString = "me.fzzyhmstrs:fzzy_config:${fzzyConfigVersion}+1.21.7+neoforge";
-            } else if (minecraft == "26.3") {
-                // fzzy_config has published a 26.3 Fabric build but not a NeoForge one yet. The mod's
-                // config code compiles against its API, so fall back to the 26.2 NeoForge jar of the
-                // same fzzy_config release — same API surface, and its metadata accepts newer
-                // Minecraft versions. Switch to +26.3+neoforge as soon as it is published.
-                fzzyString = "me.fzzyhmstrs:fzzy_config:${fzzyConfigVersion}+26.2+neoforge"
             } else {
                 fzzyString = "me.fzzyhmstrs:fzzy_config:${fzzyConfigVersion}+${fzzyMinecraftVersion}+neoforge"
             }
 
         }
 
+    }
+
+    // The plain 0.7.7 builds for 26.3 have sliders and scroll bars that can't be dragged with the
+    // mouse (26.3 changed input handling). The fix releases are only published on Modrinth, not on
+    // fzzy_config's own Maven, so pull them from there.
+    if (minecraft == "26.3") {
+        fzzyString = "maven.modrinth:fzzy-config:0.7.7+fix2+26.3" + (if (modstitch.isLoom) "" else "+neoforge")
+        // Modrinth serves the jar without fzzy_config's dependency metadata, so the Kotlin runtime it
+        // normally pulls in transitively goes missing and fzzy can't load configs or open its screen.
+        // Add back the Kotlin language provider mod that fzzy_config 0.7.7 declares for 26.3.
+        if (modstitch.isLoom) {
+            "net.fabricmc:fabric-language-kotlin:1.13.11+kotlin.2.3.21".runtimeOnly()
+        } else {
+            "dev.nyon:KotlinLangForge:2.14.1-k2.4.20-3.1+neoforge".runtimeOnly()
+        }
     }
 
     modstitchModCompileOnly(fzzyString)

@@ -99,12 +99,15 @@ public class BeamRenderer {
         Option<DynamicProvider> dynamicProvider1 = DynamicProviderModule.getDynamicProvider();
         if (dynamicProvider1.isDefined()) {
             beamAlpha *= Math.min(dynamicProvider1.get().getBeamLightFactor(), 1);
-            beamHeight += dynamicProvider1.get().getBeamLightFactor() - 0.3f;
+            // A static beam holds its height at the pulse's midpoint rather than following it, so
+            // turning the option on doesn't also visibly shrink or grow the beam.
+            float heightFactor = beamConfig.static_beam_height ? DynamicProvider.meanBeamLightFactor() : dynamicProvider1.get().getBeamLightFactor();
+            beamHeight += heightFactor - 0.3f;
             beamRadius += 0.005f * dynamicProvider1.get().getGlowFactor();
         }
 
         beamAlpha *= fadeInFactor;
-        beamHeight *= fadeInFactor;
+        if (!beamConfig.static_beam_height) beamHeight *= fadeInFactor;
         Vector3f playerPos = player.getPosition(renderState.partialTick).toVector3f();
         Vector3f targetPos = renderState.location.toVector3f();
         Vector3f sub = targetPos.sub(playerPos);
@@ -233,12 +236,15 @@ public class BeamRenderer {
         Option<DynamicProvider> dynamicProvider1 = DynamicProviderModule.getDynamicProvider();
         if (dynamicProvider1.isDefined()) {
             beamAlpha *= Math.min(dynamicProvider1.get().getBeamLightFactor(), 1);
-            beamHeight += dynamicProvider1.get().getBeamLightFactor() - 0.3f;
+            // A static beam holds its height at the pulse's midpoint rather than following it, so
+            // turning the option on doesn't also visibly shrink or grow the beam.
+            float heightFactor = beamConfig.static_beam_height ? DynamicProvider.meanBeamLightFactor() : dynamicProvider1.get().getBeamLightFactor();
+            beamHeight += heightFactor - 0.3f;
             beamRadius += 0.005f * dynamicProvider1.get().getGlowFactor();
         }
 
         beamAlpha *= fadeInFactor;
-        beamHeight *= fadeInFactor;
+        if (!beamConfig.static_beam_height) beamHeight *= fadeInFactor;
         Vector3f playerPos = player.getPosition(renderState.partialTick).toVector3f();
         Vector3f targetPos = renderState.location.toVector3f();
         Vector3f sub = targetPos.sub(playerPos);

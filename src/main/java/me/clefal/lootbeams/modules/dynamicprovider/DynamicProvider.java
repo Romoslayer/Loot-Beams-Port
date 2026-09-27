@@ -17,6 +17,15 @@ public class DynamicProvider {
     }
 
     public float getBeamLightFactor(){
+        return beamLightFactor(alterFactor);
+    }
+
+    // The factor halfway through a pulse, i.e. its average over a full cycle.
+    public static float meanBeamLightFactor(){
+        return beamLightFactor(0.5f);
+    }
+
+    private static float beamLightFactor(float alterFactor){
         return 0.5f * alterFactor + 0.6f;
     }
 
